@@ -55,10 +55,51 @@ def handle_client(client_socket, client_addr):
                                 broadcast(f"{nickname} 现在叫做 {new_nick}", exclude_nickname=None)
                                 nickname = new_nick
                                 send_to_nick(nickname, f"昵称已更新为 {nickname}")
+                elif cmd == '/nick':
+                    send_to_nick(nickname, "用法：/nick 新昵称")
                 elif cmd == '/quit':
                     break
                 else:
                     send_to_nick(nickname, "未知命令")
+            elif data.startswith('IMGREQ|'):
+                try:
+                    _, target_field, filename, size_str = data.split('|', 3)
+                    target_nick = target_field[1:] if target_field.startswith('@') else target_field
+                    with lock:
+                        if target_nick in client_pool:
+                            target_sock, _ = client_pool[target_nick]
+                            payload = f"IMGREQ|{nickname}|{filename}|{size_str}"
+                            target_sock.send(payload.encode('utf-8'))
+                        else:
+                            send_to_nick(nickname, f"目标用户 {target_nick} 不存在或已离线")
+                except:
+                    send_to_nick(nickname, "图片请求格式错误")
+            elif data.startswith('IMGOK|'):
+                try:
+                    _, target_field, filename = data.split('|', 2)
+                    target_nick = target_field[1:] if target_field.startswith('@') else target_field
+                    with lock:
+                        if target_nick in client_pool:
+                            target_sock, _ = client_pool[target_nick]
+                            payload = f"IMGOK|{nickname}|{filename}"
+                            target_sock.send(payload.encode('utf-8'))
+                        else:
+                            send_to_nick(nickname, f"目标用户 {target_nick} 不存在或已离线")
+                except:
+                    send_to_nick(nickname, "图片接受通知格式错误")
+            elif data.startswith('IMGNO|'):
+                try:
+                    _, target_field, filename = data.split('|', 2)
+                    target_nick = target_field[1:] if target_field.startswith('@') else target_field
+                    with lock:
+                        if target_nick in client_pool:
+                            target_sock, _ = client_pool[target_nick]
+                            payload = f"IMGNO|{nickname}|{filename}"
+                            target_sock.send(payload.encode('utf-8'))
+                        else:
+                            send_to_nick(nickname, f"目标用户 {target_nick} 不存在或已离线")
+                except:
+                    send_to_nick(nickname, "图片拒收通知格式错误")
             elif data.startswith('IMG|'):
                 try:
                     parts = data.split('|', 5)
