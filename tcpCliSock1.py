@@ -60,7 +60,7 @@ def recv_msg(client_socket):
 
 def main():
     # 配置服务器地址
-    HOST = input("请输入服务器IP地址：")  # 如192.168.43.5
+    HOST = input("请输入服务器IP地址：")
     PORT = 21567
     ADDR = (HOST, PORT)
 

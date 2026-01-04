@@ -1,0 +1,27 @@
+digraph TCP_Socket_Communication {
+    rankdir=TD;  // 从上到下绘制
+    node [shape=rect, style=filled, fillcolor=lightblue];  // 节点样式
+    
+    // 服务器端节点
+    S1 [label="服务器端：创建套接字（socket()）"];
+    S2 [label="绑定IP和端口（bind()）"];
+    S3 [label="监听连接（listen()）"];
+    S4 [label="等待并接受客户端连接（accept()）"];
+    S5 [label="多线程处理客户端消息（recv()/send()）"];
+    S6 [label="关闭套接字（close()）"];
+    
+    // 客户端节点
+    C1 [label="客户端：创建套接字（socket()）"];
+    C2 [label="连接服务器（connect()）"];
+    C3 [label="发送/接收消息（send()/recv()）"];
+    C4 [label="关闭套接字（close()）"];
+    
+    // 流程关联线（实线：自身流程；虚线：两端交互）
+    S1 -> S2 -> S3 -> S4 -> S5 -> S6;
+    C1 -> C2 -> C3 -> C4;
+    
+    // 核心交互关系：客户端连接触发服务器接受连接
+    C2 -> S4 [style=dashed, label="发起连接请求"];
+    // 消息交互：处理消息与收发消息双向关联
+    S5<-> C3 [style=dashed, label="消息交互"];
+}

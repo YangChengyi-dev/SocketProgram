@@ -1,0 +1,25 @@
+digraph TCP_Socket_Communication {
+	node [fillcolor=lightblue fontname="sans-serif" fontsize=10 shape=rect style=filled]
+	edge [fontname="sans-serif" fontsize=9]
+	S1 [label="服务器端：创建套接字（socket()）"]
+	S2 [label="绑定IP和端口（bind()）"]
+	S3 [label="监听连接（listen()）"]
+	S4 [label="等待并接受客户端连接（accept()）"]
+	S5 [label="多线程处理客户端消息（recv()/send()）"]
+	S6 [label="关闭套接字（close()）"]
+	C1 [label="客户端：创建套接字（socket()）"]
+	C2 [label="连接服务器（connect()）"]
+	C3 [label="发送/接收消息（send()/recv()）"]
+	C4 [label="关闭套接字（close()）"]
+	S1 -> S2
+	S2 -> S3
+	S3 -> S4
+	S4 -> S5
+	S5 -> S6
+	C1 -> C2
+	C2 -> C3
+	C3 -> C4
+	C2 -> S4 [label="发起连接请求" style=dashed]
+	S5 -> C3 [label="消息交互" style=dashed]
+	C3 -> S5 [style=dashed]
+}
