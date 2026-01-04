@@ -59,3 +59,5 @@ python tcpCliSock1.py
 - 局域网通信需开放 21567（TCP）端口
 - 图片通过 Base64 文本分片传输，适合中小图片；大文件会产生较多分片
 - 如需更高效与可靠，可后续升级为二进制协议、断点续传、服务端持久化等机制
+
+代码托管在https://github.com/YangChengyi-dev/SocketProgram
