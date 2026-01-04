@@ -76,7 +76,7 @@ def main():
     # 输入客户端昵称
     nickname = input("请输入你的昵称：")
     client_socket.send(nickname.encode('utf-8'))
-    print(" 操作说明：广播直接输入；@昵称:消息定向；/list在线列表；/nick 新昵称改名；/help帮助；quit或/quit退出")
+    print(" 操作说明：广播直接输入；@昵称:消息定向；/img @昵称 文件路径 发送图片；/list在线列表；/nick 新昵称改名；/help帮助；quit或/quit退出")
 
     # 启动接收消息线程
     recv_thread = threading.Thread(target=recv_msg, args=(client_socket,), daemon=True)
@@ -91,7 +91,7 @@ def main():
                 print("已退出聊天")
                 sys.exit(0)
             if msg.strip() == '/help':
-                print("命令：/list 查看在线用户；/nick 新昵称 修改昵称；/quit 退出；@昵称:消息 定向消息")
+                print("命令：/list 查看在线用户；/nick 新昵称 修改昵称；/quit 退出；@昵称:消息 定向消息；/img @昵称 文件路径 发送图片（接收后保存在 received_images）")
                 continue
             if msg.startswith('/img '):
                 try:
