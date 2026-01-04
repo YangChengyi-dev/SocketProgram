@@ -15,11 +15,17 @@ def handle_client(client_socket, client_addr):
         # 接收客户端的昵称
         nickname = client_socket.recv(1024).decode('utf-8')
         with lock:
+            if nickname in client_pool:
+                try:
+                    client_socket.send("昵称已占用，请更换".encode('utf-8'))
+                finally:
+                    client_socket.close()
+                return
             client_pool[nickname] = (client_socket, client_addr)
         print(f"客户端 {nickname}（{client_addr}）已连接，当前在线人数：{len(client_pool)}")
 
         # 广播新用户上线消息
-        broadcast(f" {nickname} 加入了聊天", exclude_nickname=None)
+        broadcast(f"{nickname} 加入了聊天", exclude_nickname=None)
 
         while True:
             # 接收客户端消息
@@ -28,7 +34,46 @@ def handle_client(client_socket, client_addr):
                 raise ConnectionResetError("客户端主动断开连接")
 
             # 解析消息：@指定用户:内容 或 广播内容
-            if data.startswith('@'):
+            if data.startswith('/'):
+                cmd = data.strip()
+                if cmd == '/list':
+                    with lock:
+                        users = ", ".join(sorted(client_pool.keys()))
+                    send_to_nick(nickname, f"在线用户：{users}" if users else "暂无在线用户")
+                elif cmd.startswith('/nick '):
+                    new_nick = cmd[6:].strip()
+                    if not new_nick:
+                        send_to_nick(nickname, "昵称不能为空")
+                    else:
+                        with lock:
+                            if new_nick in client_pool:
+                                send_to_nick(nickname, "该昵称已被占用")
+                            else:
+                                sock_addr = client_pool[nickname]
+                                del client_pool[nickname]
+                                client_pool[new_nick] = sock_addr
+                                broadcast(f"{nickname} 现在叫做 {new_nick}", exclude_nickname=None)
+                                nickname = new_nick
+                                send_to_nick(nickname, f"昵称已更新为 {nickname}")
+                elif cmd == '/quit':
+                    break
+                else:
+                    send_to_nick(nickname, "未知命令")
+            elif data.startswith('IMG|'):
+                try:
+                    parts = data.split('|', 5)
+                    _, target_field, filename, seq_str, total_str, chunk = parts
+                    target_nick = target_field[1:] if target_field.startswith('@') else target_field
+                    with lock:
+                        if target_nick in client_pool:
+                            target_sock, _ = client_pool[target_nick]
+                            payload = f"IMG|{nickname}|{filename}|{seq_str}|{total_str}|{chunk}"
+                            target_sock.send(payload.encode('utf-8'))
+                        else:
+                            send_to_nick(nickname, f"目标用户 {target_nick} 不存在或已离线")
+                except:
+                    send_to_nick(nickname, "图片消息格式错误")
+            elif data.startswith('@'):
                 # 定向消息格式：@目标昵称:消息内容
                 target_nickname, msg = data.split(':', 1)
                 target_nickname = target_nickname[1:]  # 去掉@符号
@@ -53,13 +98,16 @@ def broadcast(msg, exclude_nickname=None):
     """广播消息给所有客户端（可排除指定客户端）"""
     with lock:
         # 遍历客户端池，发送消息
+        to_remove = []
         for nick, (sock, _) in client_pool.items():
             if nick != exclude_nickname:
                 try:
                     sock.send(msg.encode('utf-8'))
                 except:
-                    # 发送失败则移除该客户端
-                    del client_pool[nick]
+                    to_remove.append(nick)
+        for nick in to_remove:
+            if nick in client_pool:
+                del client_pool[nick]
 
 
 def send_direct_msg(sender_nick, target_nick, msg):
@@ -79,6 +127,16 @@ def send_direct_msg(sender_nick, target_nick, msg):
             # 目标用户不存在
             sender_sock, _ = client_pool[sender_nick]
             sender_sock.send(f"目标用户 {target_nick} 不存在或已离线".encode('utf-8'))
+
+
+def send_to_nick(nick, msg):
+    with lock:
+        if nick in client_pool:
+            sock, _ = client_pool[nick]
+            try:
+                sock.send(msg.encode('utf-8'))
+            except:
+                del client_pool[nick]
 
 
 def server_input():
